@@ -13,4 +13,4 @@ func main() {
 func zhanibek()
 func sosali?()
 // Жанибек коммит
-//SOSALI?
+// Zhanibek SOSAL
