@@ -14,3 +14,4 @@ func zhanibek()
 func sosali?()
 // Жанибек коммит
 //SOSALI?
+Beibarys moy tigr
