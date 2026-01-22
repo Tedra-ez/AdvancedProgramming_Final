@@ -10,8 +10,3 @@ func main() {
 	router.Setup(r)
 	r.Run(":8080") // some text
 }
-func zhanibek()
-func sosali?()
-// Жанибек коммит
-//SOSALI?
-Beibarys moy tigr
