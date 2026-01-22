@@ -10,3 +10,5 @@ func main() {
 	router.Setup(r)
 	r.Run(":8080") // some text
 }
+
+// Жанибек коммит
