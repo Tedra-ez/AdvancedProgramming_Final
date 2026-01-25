@@ -1,12 +1,23 @@
 package main
 
 import (
-	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/router"
+	"log"
+
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	r := gin.Default()
-	router.Setup(r)
-	r.Run(":8080") // some text
+	server := gin.Default()
+
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("env not loaded")
+	}
+
+	server.GET("/ping", func(c *gin.Context) {
+
+		c.JSON(200, gin.H{"msg": "pong"})
+	})
+
+	server.Run(":8080")
 }
