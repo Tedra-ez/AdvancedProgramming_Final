@@ -1,23 +1,22 @@
 package main
 
 import (
-	"log"
-
+	"github.com/Tedra-ez/AdvancedProgramming_Final/handlers"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/api"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/repository"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/services"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
 	server := gin.Default()
 
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("env not loaded")
-	}
+	// make sure to create an interface to each service handler and repository.
+	//product service not the final version
+	db := repository.New()
+	productService := services.New(db)
+	productHandler := handlers.New(productService)
 
-	server.GET("/ping", func(c *gin.Context) {
-
-		c.JSON(200, gin.H{"msg": "pong"})
-	})
-
-	server.Run(":8080")
+	api.SetUpRouters(server, productHandler)
+	server.Run()
 }
