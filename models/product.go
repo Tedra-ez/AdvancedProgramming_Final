@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// it should be similar to the ERD scheme
 type Product struct {
 	ID          string         `json:"ID"`
 	Name        string         `json:"name"`

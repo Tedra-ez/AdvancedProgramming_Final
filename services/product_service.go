@@ -14,6 +14,7 @@ var (
 	ErrProductNotFound = errors.New("product not found")
 )
 
+// make interface pls
 type ProductService interface {
 	List() ([]models.Product, error)
 	GetByID(ID string) (models.Product, error)

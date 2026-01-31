@@ -16,6 +16,7 @@ var (
 	ErrNotExist      = errors.New("not exists")
 )
 
+// make interface pls
 type ProductRepository interface {
 	FindAll() ([]models.Product, error)
 	FindByID(ID string) (models.Product, error)

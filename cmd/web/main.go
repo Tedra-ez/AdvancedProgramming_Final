@@ -12,7 +12,7 @@ func main() {
 	server := gin.Default()
 
 	// make sure to create an interface to each service handler and repository.
-	//product service not the final version
+	// product service not the final version
 	db := repository.New()
 	productService := services.New(db)
 	productHandler := handlers.New(productService)

@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// make interface pls
 type ProductHandler interface {
 	GetProducts(ctx *gin.Context)
 	GetProductByID(ctx *gin.Context)

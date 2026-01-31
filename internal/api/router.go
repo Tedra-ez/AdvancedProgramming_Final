@@ -13,5 +13,6 @@ func SetUpRouters(r *gin.Engine, h handlers.ProductHandler) {
 		api.POST("/product", h.CreateProduct)
 		api.PUT("/product/:id", h.UpdateProduct)
 		api.DELETE("product/:id", h.DeleteProduct)
+
 	}
 }
