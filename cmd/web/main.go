@@ -45,15 +45,23 @@ func main() {
 		}()
 	}
 
+	productCol := mongoClient.Collection("products")
+	productRepo := repository.NewProductRepositoryMongo(productCol)
+
+	productService := services.NewProductService(productRepo)
+	productHandler := handlers.NewProductHandler(productService)
+
 	orderStore := repository.NewOrderStore(mongoClient)
 	orderService := services.NewOrderService(orderStore)
 	orderHandler := handlers.NewOrderHandler(orderService)
 
-	userStore := repository.NewUserRepository(mongoClient)
-	authService := services.NewAuthService(userStore, cfg.JWTSecret)
+	userCol := mongoClient.Collection("users")
+
+	userRepo := repository.NewUserRepository(userCol)
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	authHandler := handlers.NewAuthHandler(authService)
 
-	api.SetUpRouters(server, orderHandler, authHandler)
+	api.SetUpRouters(server, orderHandler, authHandler, *productHandler)
 
 	addr := ":" + cfg.Port
 	if err := server.Run(addr); err != nil {

@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetUpRouters(r *gin.Engine, orderHandler *handlers.OrderHandler, authHandler *handlers.AuthHandler) {
+func SetUpRouters(r *gin.Engine, orderHandler *handlers.OrderHandler, authHandler *handlers.AuthHandler, productHandler handlers.ProductHandler) {
 	auth := r.Group("/auth")
 	{
 		auth.POST("/register", authHandler.Register)
@@ -18,5 +18,13 @@ func SetUpRouters(r *gin.Engine, orderHandler *handlers.OrderHandler, authHandle
 		orders.POST("", orderHandler.CreateOrder)
 		orders.GET("/:id", orderHandler.GetOrderStatus)
 		orders.PATCH("/:id/status", orderHandler.UpdateOrderStatus)
+	}
+	api := r.Group("/api")
+	{
+		api.GET("/product", productHandler.GetProducts)
+		api.GET("/product/:id", productHandler.GetProductByID)
+		api.POST("/product", productHandler.CreateProduct)
+		api.PUT("/product/:id", productHandler.UpdateProduct)
+		api.DELETE("product/:id", productHandler.DeleteProduct)
 	}
 }
