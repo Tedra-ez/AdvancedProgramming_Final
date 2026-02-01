@@ -1,104 +1,90 @@
 package handlers
 
 import (
-	"errors"
+	"net/http"
 
 	"github.com/Tedra-ez/AdvancedProgramming_Final/models"
 	"github.com/Tedra-ez/AdvancedProgramming_Final/services"
 	"github.com/gin-gonic/gin"
 )
 
-// make interface pls
-type ProductHandler interface {
-	GetProducts(ctx *gin.Context)
-	GetProductByID(ctx *gin.Context)
-	CreateProduct(ctx *gin.Context)
-	UpdateProduct(ctx *gin.Context)
-	DeleteProduct(ctx *gin.Context)
+type ProductHandler struct {
+	productService *services.ProductService
 }
 
-type productHandler struct {
-	service services.ProductService
+func NewProductHandler(svc *services.ProductService) *ProductHandler {
+	return &ProductHandler{productService: svc}
 }
 
-func New(productService services.ProductService) ProductHandler {
-	return &productHandler{
-		service: productService,
-	}
-}
-
-func (ph *productHandler) GetProducts(ctx *gin.Context) {
-	list, err := ph.service.List()
+func (h *ProductHandler) GetProducts(c *gin.Context) {
+	products, err := h.productService.List(c.Request.Context())
 	if err != nil {
-		if err.Error() == "slice is empty" {
-			ctx.JSON(204, gin.H{
-				"status": "slice is empty",
-			})
-			return
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-
-	ctx.JSON(200, list)
-	return
+	c.JSON(http.StatusOK, products)
 }
-func (ph *productHandler) GetProductByID(ctx *gin.Context) {
-	id := ctx.Param("id")
-	product, err := ph.service.GetByID(id)
 
+func (h *ProductHandler) GetProductByID(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id required"})
+		return
+	}
+	p, err := h.productService.GetByID(c.Request.Context(), id)
 	if err != nil {
-		if err.Error() == "product not found" {
-			ctx.JSON(404, gin.H{
-				"error": "product not found",
-			})
-			return
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-
-	ctx.JSON(200, product)
-}
-func (ph *productHandler) CreateProduct(ctx *gin.Context) {
-	var product models.Product
-
-	ctx.BindJSON(&product)
-
-	err := ph.service.Create(product)
-	switch {
-	case errors.Is(err, services.ErrInvalidPrice):
-		ctx.JSON(400, gin.H{"error": err.Error()})
-	case errors.Is(err, services.ErrProductExists):
-		ctx.JSON(409, gin.H{"error": err.Error()})
-	case err != nil:
-		ctx.JSON(500, gin.H{"error": "internal error"})
-	default:
-		ctx.JSON(201, product)
+	if p == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+		return
 	}
-
-	ctx.JSON(201, gin.H{
-		"status":  "created",
-		"product": product,
-	})
+	c.JSON(http.StatusOK, p)
 }
-func (ph *productHandler) UpdateProduct(ctx *gin.Context) {
-	var product models.Product
 
-	id := ctx.Param("id")
-	ctx.BindJSON(&product)
-
-	err := ph.service.Update(id, product)
+func (h *ProductHandler) CreateProduct(c *gin.Context) {
+	var req models.CreateProductRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	p, err := h.productService.Create(c.Request.Context(), &req)
 	if err != nil {
-		if err.Error() == "Product doesn't exist" {
-			ctx.JSON(404, gin.H{
-				"error": "product not found",
-			})
-			return
-		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
-
-	ctx.JSON(201, gin.H{
-		"status":  "updated",
-		"product": product,
-	})
+	c.JSON(http.StatusCreated, p)
 }
-func (ph *productHandler) DeleteProduct(ctx *gin.Context) {
 
+func (h *ProductHandler) UpdateProduct(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id required"})
+		return
+	}
+	var p models.Product
+	if err := c.ShouldBindJSON(&p); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	p.ID = id
+	if err := h.productService.Update(c.Request.Context(), id, &p); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, p)
+}
+
+func (h *ProductHandler) DeleteProduct(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id required"})
+		return
+	}
+	if err := h.productService.Delete(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusNoContent, nil)
 }

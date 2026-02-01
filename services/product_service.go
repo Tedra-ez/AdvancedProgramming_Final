@@ -1,69 +1,68 @@
 package services
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	"github.com/Tedra-ez/AdvancedProgramming_Final/models"
 	"github.com/Tedra-ez/AdvancedProgramming_Final/repository"
 )
 
-// also, for the purity of the code, it is better to pull the error in the var.
-var (
-	ErrInvalidPrice    = errors.New("invalid price")
-	ErrProductExists   = errors.New("product already exists")
-	ErrProductNotFound = errors.New("product not found")
-)
-
-// make interface pls
-type ProductService interface {
-	List() ([]models.Product, error)
-	GetByID(ID string) (models.Product, error)
-	Create(product models.Product) error
-	Update(id string, product models.Product) error
-	Delete(id string) error
+type ProductService struct {
+	repo repository.ProductStore
 }
 
-type productService struct {
-	repository repository.ProductRepository
+func NewProductService(repo repository.ProductStore) *ProductService {
+	return &ProductService{repo: repo}
 }
 
-func New(r repository.ProductRepository) ProductService {
-	return &productService{repository: r}
+func (s *ProductService) List(ctx context.Context) ([]*models.Product, error) {
+	return s.repo.FindAll(ctx)
 }
 
-func (ps *productService) List() ([]models.Product, error) {
-	return ps.repository.FindAll()
+func (s *ProductService) GetByID(ctx context.Context, id string) (*models.Product, error) {
+	return s.repo.FindByID(ctx, id)
 }
-func (ps *productService) GetByID(ID string) (models.Product, error) {
-	return ps.repository.FindByID(ID)
-}
-func (ps *productService) Create(product models.Product) error {
-	if product.Price <= 0 {
-		return ErrInvalidPrice
+
+func (s *ProductService) Create(ctx context.Context, req *models.CreateProductRequest) (*models.Product, error) {
+	now := time.Now()
+	p := &models.Product{
+		Name:        req.Name,
+		Description: req.Description,
+		Category:    req.Category,
+		Price:       req.Price,
+		Sizes:       req.Sizes,
+		Colors:      req.Colors,
+		StockBySize: req.StockBySize,
+		Images:      req.Images,
+		IsActive:    true,
+		CreatedAt:   now,
+		UpdateAt:    now,
 	}
-	err := ps.repository.Insert(product)
-	if err != nil {
-		if errors.Is(err, repository.ErrAlreadyExists) {
-			return ErrProductExists
-		}
-		return err // unknown error --> handler
+	if p.Sizes == nil {
+		p.Sizes = []string{}
 	}
-	return nil
+	if p.Colors == nil {
+		p.Colors = []string{}
+	}
+	if p.StockBySize == nil {
+		p.StockBySize = make(map[string]int)
+	}
+	if p.Images == nil {
+		p.Images = []string{}
+	}
+	if p.Price <= 0 {
+		return nil, errors.New("price must be greater than 0")
+	}
+	return s.repo.Insert(ctx, p)
 }
-func (ps *productService) Update(id string, product models.Product) error {
-	if product.Price <= 0 {
-		return ErrInvalidPrice
-	}
-	err := ps.repository.Update(id, product)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotExist) {
-			return ErrProductNotFound
-		}
-		return err // unknown error --> handler
-	}
 
-	return nil
+func (s *ProductService) Update(ctx context.Context, id string, p *models.Product) error {
+	p.UpdateAt = time.Now()
+	return s.repo.Update(ctx, id, p)
 }
-func (ps *productService) Delete(id string) error {
-	return ps.repository.Delete(id)
+
+func (s *ProductService) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
 }
