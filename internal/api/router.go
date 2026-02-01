@@ -5,14 +5,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetUpRouters(r *gin.Engine, h handlers.ProductHandler) {
+func SetUpRouters(r *gin.Engine, orderHandler *handlers.OrderHandler, authHandler *handlers.AuthHandler, productHandler handlers.ProductHandler) {
+	auth := r.Group("/auth")
+	{
+		auth.POST("/register", authHandler.Register)
+		auth.POST("/login", authHandler.Login)
+	}
+
+	orders := r.Group("/orders")
+	{
+		orders.GET("/users/:userId/orders", orderHandler.ListOrdersByUser)
+		orders.POST("", orderHandler.CreateOrder)
+		orders.GET("/:id", orderHandler.GetOrderStatus)
+		orders.PATCH("/:id/status", orderHandler.UpdateOrderStatus)
+	}
 	api := r.Group("/api")
 	{
-		api.GET("/product", h.GetProducts)
-		api.GET("/product/:id", h.GetProductByID)
-		api.POST("/product", h.CreateProduct)
-		api.PUT("/product/:id", h.UpdateProduct)
-		api.DELETE("product/:id", h.DeleteProduct)
-
+		api.GET("/product", productHandler.GetProducts)
+		api.GET("/product/:id", productHandler.GetProductByID)
+		api.POST("/product", productHandler.CreateProduct)
+		api.PUT("/product/:id", productHandler.UpdateProduct)
+		api.DELETE("product/:id", productHandler.DeleteProduct)
 	}
 }
