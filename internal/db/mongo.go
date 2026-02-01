@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,8 +13,6 @@ type MongoDBClient struct {
 	database string
 }
 
-const defaultDatabase = "clothes_store"
-
 func NewMongoDBClient(ctx context.Context, uri string) (*MongoDBClient, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -26,16 +23,11 @@ func NewMongoDBClient(ctx context.Context, uri string) (*MongoDBClient, error) {
 	if err := client.Ping(ctx, nil); err != nil {
 		return nil, err
 	}
-	log.Println("MongoDB connected")
-	return &MongoDBClient{client: client, database: defaultDatabase}, nil
-}
-
-func (c *MongoDBClient) Database() *mongo.Database {
-	return c.client.Database(c.database)
+	return &MongoDBClient{client: client, database: "clothes_store"}, nil
 }
 
 func (c *MongoDBClient) Collection(name string) *mongo.Collection {
-	return c.Database().Collection(name)
+	return c.client.Database(c.database).Collection(name)
 }
 
 func (c *MongoDBClient) Close(ctx context.Context) error {
