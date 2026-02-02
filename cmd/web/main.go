@@ -27,9 +27,20 @@ func main() {
 	server.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"msg": "pong"})
 	})
+	//goroutine
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			log.Println("[background] health tick")
+		}
+	}()
 
 	var mongoClient *db.MongoDBClient
-	if cfg.MongoURI != "" {
+
+	if cfg.MongoURI == "" {
+		log.Fatalf("error when connecting to mongo, please specify MONGO_URI in .env")
+	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		client, err := db.NewMongoDBClient(ctx, cfg.MongoURI)
 		cancel()
@@ -47,7 +58,6 @@ func main() {
 
 	productCol := mongoClient.Collection("products")
 	productRepo := repository.NewProductRepositoryMongo(productCol)
-
 	productService := services.NewProductService(productRepo)
 	productHandler := handlers.NewProductHandler(productService)
 
@@ -56,12 +66,11 @@ func main() {
 	orderHandler := handlers.NewOrderHandler(orderService)
 
 	userCol := mongoClient.Collection("users")
-
 	userRepo := repository.NewUserRepository(userCol)
-	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
+	authService := services.NewAuthService(userRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 
-	api.SetUpRouters(server, orderHandler, authHandler, *productHandler)
+	api.SetUpRouters(server, orderHandler, *productHandler, authHandler)
 
 	addr := ":" + cfg.Port
 	if err := server.Run(addr); err != nil {
