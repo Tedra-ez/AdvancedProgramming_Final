@@ -3,10 +3,11 @@ package services
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
-	"github.com/Tedra-ez/AdvancedProgramming_Final/models"
-	"github.com/Tedra-ez/AdvancedProgramming_Final/repository"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/models"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/repository"
 )
 
 type ProductService struct {
@@ -31,6 +32,7 @@ func (s *ProductService) Create(ctx context.Context, req *models.CreateProductRe
 		Name:        req.Name,
 		Description: req.Description,
 		Category:    req.Category,
+		Gender:      normalizeGender(req.Gender),
 		Price:       req.Price,
 		Sizes:       req.Sizes,
 		Colors:      req.Colors,
@@ -38,7 +40,7 @@ func (s *ProductService) Create(ctx context.Context, req *models.CreateProductRe
 		Images:      req.Images,
 		IsActive:    true,
 		CreatedAt:   now,
-		UpdateAt:    now,
+		UpdatedAt:   now,
 	}
 	if p.Sizes == nil {
 		p.Sizes = []string{}
@@ -59,10 +61,23 @@ func (s *ProductService) Create(ctx context.Context, req *models.CreateProductRe
 }
 
 func (s *ProductService) Update(ctx context.Context, id string, p *models.Product) error {
-	p.UpdateAt = time.Now()
+	p.Gender = normalizeGender(p.Gender)
+	p.UpdatedAt = time.Now()
 	return s.repo.Update(ctx, id, p)
 }
 
 func (s *ProductService) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
+}
+
+func normalizeGender(value string) string {
+	v := strings.ToLower(strings.TrimSpace(value))
+	switch v {
+	case "men", "male", "man":
+		return "men"
+	case "women", "female", "woman":
+		return "women"
+	default:
+		return ""
+	}
 }

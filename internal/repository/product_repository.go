@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Tedra-ez/AdvancedProgramming_Final/models"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -68,8 +68,8 @@ func (r *ProductRepositoryMongo) Insert(ctx context.Context, p *models.Product) 
 	if p.CreatedAt.IsZero() {
 		p.CreatedAt = now
 	}
-	if p.UpdateAt.IsZero() {
-		p.UpdateAt = now
+	if p.UpdatedAt.IsZero() {
+		p.UpdatedAt = now
 	}
 	id := primitive.NewObjectID()
 	doc := productDocFromModel(p)
@@ -87,7 +87,7 @@ func (r *ProductRepositoryMongo) Update(ctx context.Context, id string, p *model
 	if err != nil {
 		return err
 	}
-	p.UpdateAt = time.Now()
+	p.UpdatedAt = time.Now()
 	doc := productDocFromModel(p)
 	doc.ID = oid
 	_, err = r.coll.ReplaceOne(ctx, bson.M{"_id": oid}, doc)
@@ -108,6 +108,7 @@ type productDoc struct {
 	Name        string             `bson:"name"`
 	Description string             `bson:"description"`
 	Category    string             `bson:"category"`
+	Gender      string             `bson:"gender"`
 	Price       float64            `bson:"price"`
 	Sizes       []string           `bson:"sizes"`
 	Colors      []string           `bson:"colors"`
@@ -115,7 +116,7 @@ type productDoc struct {
 	Images      []string           `bson:"images"`
 	IsActive    bool               `bson:"isActive"`
 	CreatedAt   primitive.DateTime `bson:"createdAt"`
-	UpdateAt    primitive.DateTime `bson:"updateAt"`
+	UpdatedAt   primitive.DateTime `bson:"updateAt"`
 }
 
 func productDocFromModel(p *models.Product) *productDoc {
@@ -123,6 +124,7 @@ func productDocFromModel(p *models.Product) *productDoc {
 		Name:        p.Name,
 		Description: p.Description,
 		Category:    p.Category,
+		Gender:      p.Gender,
 		Price:       p.Price,
 		Sizes:       p.Sizes,
 		Colors:      p.Colors,
@@ -133,8 +135,8 @@ func productDocFromModel(p *models.Product) *productDoc {
 	if !p.CreatedAt.IsZero() {
 		d.CreatedAt = primitive.NewDateTimeFromTime(p.CreatedAt)
 	}
-	if !p.UpdateAt.IsZero() {
-		d.UpdateAt = primitive.NewDateTimeFromTime(p.UpdateAt)
+	if !p.UpdatedAt.IsZero() {
+		d.UpdatedAt = primitive.NewDateTimeFromTime(p.UpdatedAt)
 	}
 	return d
 }
@@ -145,6 +147,7 @@ func (d *productDoc) toModel() *models.Product {
 		Name:        d.Name,
 		Description: d.Description,
 		Category:    d.Category,
+		Gender:      d.Gender,
 		Price:       d.Price,
 		Sizes:       d.Sizes,
 		Colors:      d.Colors,
@@ -152,7 +155,7 @@ func (d *productDoc) toModel() *models.Product {
 		Images:      d.Images,
 		IsActive:    d.IsActive,
 		CreatedAt:   d.CreatedAt.Time(),
-		UpdateAt:    d.UpdateAt.Time(),
+		UpdatedAt:   d.UpdatedAt.Time(),
 	}
 }
 
@@ -195,8 +198,8 @@ func (r *ProductRepositoryMemory) Insert(ctx context.Context, p *models.Product)
 	if p.CreatedAt.IsZero() {
 		p.CreatedAt = time.Now()
 	}
-	if p.UpdateAt.IsZero() {
-		p.UpdateAt = time.Now()
+	if p.UpdatedAt.IsZero() {
+		p.UpdatedAt = time.Now()
 	}
 	r.data[p.ID] = p
 	return p, nil
@@ -209,7 +212,7 @@ func (r *ProductRepositoryMemory) Update(ctx context.Context, id string, p *mode
 		return nil
 	}
 	p.ID = id
-	p.UpdateAt = time.Now()
+	p.UpdatedAt = time.Now()
 	r.data[id] = p
 	return nil
 }
