@@ -6,8 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/db"
-	"github.com/Tedra-ez/AdvancedProgramming_Final/models"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,6 +16,7 @@ import (
 type OrderStore interface {
 	Save(ctx context.Context, order *models.Order) error
 	FindByUser(ctx context.Context, userID string) ([]*models.Order, error)
+	FindAll(ctx context.Context) ([]*models.Order, error)
 	UpdateStatus(ctx context.Context, orderID, status string) error
 	FindByID(ctx context.Context, orderID string) (*models.Order, error)
 }
@@ -65,35 +65,42 @@ func (r *OrderRepositoryMongo) Save(ctx context.Context, order *models.Order) er
 }
 
 func (r *OrderRepositoryMongo) FindByUser(ctx context.Context, userID string) ([]*models.Order, error) {
-	cur, err := r.coll.Find(ctx, bson.M{"userId": userID}, options.Find().SetSort(bson.M{"createdAt": -1}))
+	return r.findOrders(ctx, bson.M{"userId": userID})
+}
+
+func (r *OrderRepositoryMongo) FindAll(ctx context.Context) ([]*models.Order, error) {
+	return r.findOrders(ctx, bson.M{})
+}
+
+func (r *OrderRepositoryMongo) findOrders(ctx context.Context, filter bson.M) ([]*models.Order, error) {
+	cur, err := r.coll.Find(ctx, filter, options.Find().SetSort(bson.M{"createdAt": -1}))
 	if err != nil {
 		return nil, err
 	}
 	defer cur.Close(ctx)
 	var out []*models.Order
+	var orderIDs []string
 	for cur.Next(ctx) {
 		var doc orderDoc
 		if err := cur.Decode(&doc); err != nil {
 			return nil, err
 		}
 		o := doc.toModel()
-		items, _ := r.itemRepo.FindByOrderId(ctx, o.ID)
+		out = append(out, o)
+		orderIDs = append(orderIDs, o.ID)
+	}
+	itemsByOrderID, err := r.itemRepo.FindByOrderIds(ctx, orderIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, o := range out {
+		items := itemsByOrderID[o.ID]
 		o.Items = make([]models.OrderItem, 0, len(items))
 		for _, it := range items {
 			o.Items = append(o.Items, *it)
 		}
-		out = append(out, o)
 	}
 	return out, cur.Err()
-}
-func NewOrderStore(mongoClient *db.MongoDBClient) OrderStore {
-	if mongoClient == nil {
-		return NewOrderRepositoryMemory()
-	}
-	orderColl := mongoClient.Collection("orders")
-	orderItemColl := mongoClient.Collection("order_items")
-	itemRepo := NewOrderItemRepositoryMongo(orderItemColl)
-	return NewOrderRepositoryMongo(orderColl, itemRepo)
 }
 
 func (r *OrderRepositoryMongo) FindByID(ctx context.Context, orderID string) (*models.Order, error) {
@@ -211,6 +218,16 @@ func (r *OrderRepositoryMemory) FindByUser(ctx context.Context, userID string) (
 		if o.UserID == userID {
 			out = append(out, o)
 		}
+	}
+	return out, nil
+}
+
+func (r *OrderRepositoryMemory) FindAll(ctx context.Context) ([]*models.Order, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]*models.Order, 0, len(r.data))
+	for _, o := range r.data {
+		out = append(out, o)
 	}
 	return out, nil
 }

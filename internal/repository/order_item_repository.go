@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/Tedra-ez/AdvancedProgramming_Final/models"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,6 +13,7 @@ import (
 type OrderItemStore interface {
 	CreateMany(ctx context.Context, items []models.OrderItem) error
 	FindByOrderId(ctx context.Context, orderID string) ([]*models.OrderItem, error)
+	FindByOrderIds(ctx context.Context, orderIDs []string) (map[string][]*models.OrderItem, error)
 }
 
 type OrderItemRepositoryMongo struct {
@@ -61,6 +62,27 @@ func (r *OrderItemRepositoryMongo) FindByOrderId(ctx context.Context, orderID st
 		out = append(out, doc.toModel())
 	}
 	return out, cur.Err()
+}
+
+func (r *OrderItemRepositoryMongo) FindByOrderIds(ctx context.Context, orderIDs []string) (map[string][]*models.OrderItem, error) {
+	result := make(map[string][]*models.OrderItem)
+	if len(orderIDs) == 0 {
+		return result, nil
+	}
+	cur, err := r.coll.Find(ctx, bson.M{"orderId": bson.M{"$in": orderIDs}}, options.Find())
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	for cur.Next(ctx) {
+		var doc orderItemDocStandalone
+		if err := cur.Decode(&doc); err != nil {
+			return nil, err
+		}
+		item := doc.toModel()
+		result[item.OrderID] = append(result[item.OrderID], item)
+	}
+	return result, cur.Err()
 }
 
 type orderItemDocStandalone struct {

@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/Tedra-ez/AdvancedProgramming_Final/models"
-	"github.com/Tedra-ez/AdvancedProgramming_Final/services"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/models"
+	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,6 +24,10 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 	order, err := h.svc.Create(c.Request.Context(), &req)
 	if err != nil {
+		if err == services.ErrUserNotFound || err == services.ErrProductNotFound {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -71,7 +75,10 @@ func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 func (h *OrderHandler) ListOrdersByUser(c *gin.Context) {
 	userID := c.Param("userId")
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user id required"})
+		userID = c.Query("user_id")
+	}
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id required (query or path)"})
 		return
 	}
 	orders, err := h.svc.ListByUser(c.Request.Context(), userID)
