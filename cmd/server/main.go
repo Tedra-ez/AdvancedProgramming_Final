@@ -56,6 +56,12 @@ func main() {
 
 	orderItemCol := mongoClient.Collection("order_items")
 	orderCol := mongoClient.Collection("orders")
+	indexCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	if err := repository.EnsureMongoIndexes(indexCtx, orderCol, orderItemCol); err != nil {
+		cancel()
+		log.Fatalf("MongoDB indexes: %v", err)
+	}
+	cancel()
 	orderItemRepo := repository.NewOrderItemRepositoryMongo(orderItemCol)
 	orderRepo := repository.NewOrderRepositoryMongo(orderCol, orderItemRepo)
 	orderService := services.NewOrderService(orderRepo, productRepo, userRepo)

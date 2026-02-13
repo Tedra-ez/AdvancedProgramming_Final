@@ -72,6 +72,40 @@ func (r *OrderRepositoryMongo) FindAll(ctx context.Context) ([]*models.Order, er
 	return r.findOrders(ctx, bson.M{})
 }
 
+func (r *OrderRepositoryMongo) FindRecent(ctx context.Context, limit int) ([]*models.Order, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	cur, err := r.coll.Find(ctx, bson.M{}, options.Find().SetSort(bson.M{"createdAt": -1}).SetLimit(int64(limit)))
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	var out []*models.Order
+	var orderIDs []string
+	for cur.Next(ctx) {
+		var doc orderDoc
+		if err := cur.Decode(&doc); err != nil {
+			return nil, err
+		}
+		o := doc.toModel()
+		out = append(out, o)
+		orderIDs = append(orderIDs, o.ID)
+	}
+	itemsByOrderID, err := r.itemRepo.FindByOrderIds(ctx, orderIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, o := range out {
+		items := itemsByOrderID[o.ID]
+		o.Items = make([]models.OrderItem, 0, len(items))
+		for _, it := range items {
+			o.Items = append(o.Items, *it)
+		}
+	}
+	return out, cur.Err()
+}
+
 func (r *OrderRepositoryMongo) findOrders(ctx context.Context, filter bson.M) ([]*models.Order, error) {
 	cur, err := r.coll.Find(ctx, filter, options.Find().SetSort(bson.M{"createdAt": -1}))
 	if err != nil {

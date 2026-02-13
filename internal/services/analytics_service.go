@@ -64,11 +64,6 @@ func (s *AnalyticsService) GetDashboardStats(ctx context.Context) (*DashboardSta
 	}
 	s.cacheMu.RUnlock()
 
-	orders, err := s.orderRepo.FindAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	products, err := s.productRepo.FindAll(ctx)
 	if err != nil {
 		return nil, err
@@ -89,6 +84,61 @@ func (s *AnalyticsService) GetDashboardStats(ctx context.Context) (*DashboardSta
 	productMap := make(map[string]string)
 	for _, p := range products {
 		productMap[p.ID] = p.Name
+	}
+
+	if mongoRepo, ok := s.orderRepo.(*repository.OrderRepositoryMongo); ok {
+		summary, revenueByDay, ordersByStatus, err := mongoRepo.AggregateDashboard(ctx)
+		if err != nil {
+			return nil, err
+		}
+		stats.TotalRevenue = summary.TotalRevenue
+		stats.TotalOrders = summary.TotalOrders
+		stats.PendingOrders = summary.PendingOrders
+		stats.CompletedOrders = summary.CompletedOrders
+		for i := len(revenueByDay) - 1; i >= 0; i-- {
+			agg := revenueByDay[i]
+			stats.RevenueByDay = append(stats.RevenueByDay, DailyRevenue{
+				Date:    agg.Date,
+				Revenue: agg.Revenue,
+				Orders:  agg.Orders,
+			})
+		}
+		for _, sc := range ordersByStatus {
+			stats.OrdersByStatus[sc.Status] = sc.Count
+		}
+		topProducts, err := mongoRepo.AggregateTopProducts(ctx, 10)
+		if err != nil {
+			return nil, err
+		}
+		for _, tp := range topProducts {
+			name := tp.ProductName
+			if name == "" {
+				name = productMap[tp.ProductID]
+			}
+			stats.TopProducts = append(stats.TopProducts, ProductSales{
+				ProductID:   tp.ProductID,
+				ProductName: name,
+				TotalSold:   tp.TotalSold,
+				Revenue:     tp.Revenue,
+			})
+		}
+		recentOrders, err := mongoRepo.FindRecent(ctx, 10)
+		if err != nil {
+			return nil, err
+		}
+		stats.RecentOrders = recentOrders
+
+		s.cacheMu.Lock()
+		s.cacheStats = stats
+		s.cacheUntil = time.Now().Add(15 * time.Second)
+		s.cacheMu.Unlock()
+
+		return stats, nil
+	}
+
+	orders, err := s.orderRepo.FindAll(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	productSalesMap := make(map[string]*ProductSales)
@@ -165,6 +215,22 @@ func (s *AnalyticsService) GetDashboardStats(ctx context.Context) (*DashboardSta
 }
 
 func (s *AnalyticsService) GetRevenueByPeriod(ctx context.Context, startDate, endDate time.Time) ([]DailyRevenue, error) {
+	if mongoRepo, ok := s.orderRepo.(*repository.OrderRepositoryMongo); ok {
+		revenueByDay, err := mongoRepo.AggregateRevenueByPeriod(ctx, startDate, endDate)
+		if err != nil {
+			return nil, err
+		}
+		result := make([]DailyRevenue, 0, len(revenueByDay))
+		for _, agg := range revenueByDay {
+			result = append(result, DailyRevenue{
+				Date:    agg.Date,
+				Revenue: agg.Revenue,
+				Orders:  agg.Orders,
+			})
+		}
+		return result, nil
+	}
+
 	orders, err := s.orderRepo.FindAll(ctx)
 	if err != nil {
 		return nil, err

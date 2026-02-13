@@ -30,6 +30,12 @@ A premium, modern Online store platform built with Go and MongoDB. Features a lu
 - **Frontend**: Semantic HTML5, Vanilla CSS (Modern CSS variables), JavaScript (ES6+)
 - **Icons**: Lucide Icons
 
+## Database Performance
+
+- **Multi-stage aggregation**: Analytics uses MongoDB pipelines (`$facet`, `$group`, `$lookup`, `$sort`) to compute totals, revenue trends, and top products without loading every order into memory.
+- **Compound indexes**: `orders` uses `{ userId: 1, createdAt: -1 }` for user history and recent sorting; `order_items` uses `{ orderId: 1, productId: 1 }` to accelerate joins and product sales grouping.
+- **Reduced transfer**: Aggregations return compact summaries and only a small window of recent orders.
+
 ## Project Structure
 
 ```bash
