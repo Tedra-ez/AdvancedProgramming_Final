@@ -77,6 +77,99 @@ go run cmd/server/main.go
 ```
 The server will start at http://localhost:8000.
 
+## API Documentation
+
+### Authentication
+- **POST** `/auth/register`
+  - Request (JSON):
+    ```json
+    { "fullName": "John Doe", "email": "john@example.com", "password": "secret123" }
+    ```
+  - Response `201`:
+    ```json
+    { "message": "user registered" }
+    ```
+- **POST** `/auth/login`
+  - Request (JSON):
+    ```json
+    { "email": "john@example.com", "password": "secret123" }
+    ```
+  - Response `200`:
+    ```json
+    { "token": "jwt-token" }
+    ```
+- **GET** `/auth/logout` (browser redirect)
+
+**Auth for API**: send `Authorization: Bearer <token>` or cookie `auth_token`.
+
+### Products
+- **GET** `/api/product`
+  - Response `200`:
+    ```json
+    [{ "id": "p1", "name": "Sneakers", "price": 120, "sizes": ["41","42"], "colors": ["black"] }]
+    ```
+- **GET** `/api/product/:id`
+  - Response `200`: product object
+- **POST** `/api/product` (admin, multipart/form-data)
+  - Example:
+    ```bash
+    curl -X POST http://localhost:8000/api/product \
+      -H "Authorization: Bearer <token>" \
+      -F "name=Sneakers" -F "price=120" -F "category=shoes" \
+      -F "gender=unisex" -F "sizes=41,42" -F "colors=black" \
+      -F "stock=41:5,42:3" -F "image=@./sneakers.jpg"
+    ```
+  - Response `201`: product object
+- **PUT** `/api/product/:id` (admin, JSON body = product)
+- **DELETE** `/api/product/:id` (admin) → `204`
+
+### Orders
+- **GET** `/orders?user_id={userId}`
+  - Response `200`: array of orders
+- **POST** `/orders`
+  - Request (JSON):
+    ```json
+    {
+      "user_id": "u1",
+      "payment_method": "card",
+      "delivery_method": "courier",
+      "delivery_address": "Almaty, Abay 10",
+      "comment": "leave at door",
+      "items": [
+        {
+          "product_id": "p1",
+          "product_name": "Sneakers",
+          "selected_size": "42",
+          "selected_color": "black",
+          "quantity": 1,
+          "unit_price": 120
+        }
+      ]
+    }
+    ```
+  - Response `201`: order object
+- **GET** `/orders/:id`
+  - Response `200`: order object
+- **PATCH** `/orders/:id/status`
+  - Request (JSON):
+    ```json
+    { "status": "completed" }
+    ```
+  - Response `200`:
+    ```json
+    { "id": "orderId", "status": "completed" }
+    ```
+
+### Analytics (admin)
+- **GET** `/api/analytics/stats` → dashboard stats
+- **GET** `/api/analytics/top-products` → top product sales
+- **GET** `/api/analytics/revenue?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+  - Response `200`:
+    ```json
+    [{ "date": "2026-02-01", "revenue": 520, "orders": 4 }]
+    ```
+- **GET** `/api/analytics/orders-status` → `{ "pending": 2, "completed": 5 }`
+
 ## Code Quality
 - **Clean Architecture**: Separation of concerns between layers.
 - **Optimized Assets**: Localized assets for faster loading and reliability.
