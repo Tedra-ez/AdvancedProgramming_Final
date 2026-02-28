@@ -16,9 +16,8 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("env not loaded")
-	}
+	// .env is optional: loaded locally, ignored on Render (env vars are injected by the platform)
+	godotenv.Load()
 
 	cfg := config.Load()
 
