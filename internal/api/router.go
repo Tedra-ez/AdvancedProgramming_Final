@@ -8,7 +8,7 @@ import (
 )
 
 func SetUpRouters(r *gin.Engine, orderHandler *handlers.OrderHandler, productHandler *handlers.ProductHandler, authHandler *handlers.AuthHandler, pageHandler *handlers.PageHandler, analyticsHandler *handlers.AnalyticsHandler, authSvc *services.AuthService) {
-	r.Use(middleware.Logger(), middleware.CORS(), middleware.Auth(authSvc))
+	r.Use(middleware.Metrics(), middleware.Logger(), middleware.CORS(), middleware.Auth(authSvc))
 
 	r.GET("/", pageHandler.Index)
 	r.GET("/shop", pageHandler.Shop)
@@ -25,7 +25,6 @@ func SetUpRouters(r *gin.Engine, orderHandler *handlers.OrderHandler, productHan
 	admin.Use(middleware.RequireAuth, middleware.RequireAdmin)
 	{
 		admin.GET("", pageHandler.AdminDashboard)
-		admin.GET("/dashboard", pageHandler.AdminDashboard)
 		admin.GET("/orders", pageHandler.AdminOrders)
 		admin.GET("/products", pageHandler.AdminProducts)
 		admin.GET("/users", pageHandler.AdminUsers)
@@ -38,6 +37,7 @@ func SetUpRouters(r *gin.Engine, orderHandler *handlers.OrderHandler, productHan
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 		auth.GET("/logout", authHandler.Logout)
+		auth.POST("/refresh", authHandler.Refresh)
 	}
 
 	orders := r.Group("/orders")

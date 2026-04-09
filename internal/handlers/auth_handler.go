@@ -94,3 +94,20 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.SetCookie("auth_token", "", -1, "/", "", false, true)
 	c.Redirect(http.StatusFound, "/")
 }
+
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	token, err := c.Cookie("auth_token")
+	if err != nil || token == "" {
+		c.JSON(http.StatusOK, gin.H{"message": "token refresh check", "status": "ok"})
+		return
+	}
+
+	newToken, err := h.auth.RefreshToken(c.Request.Context(), token)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"message": "token refresh check", "status": "ok"})
+		return
+	}
+
+	c.SetCookie("auth_token", newToken, 24*3600, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"token": newToken})
+}

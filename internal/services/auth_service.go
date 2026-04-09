@@ -104,6 +104,29 @@ func (s *AuthService) ParseToken(ctx context.Context, tokenStr string) (map[stri
 	}, nil
 }
 
+func (s *AuthService) RefreshToken(ctx context.Context, tokenStr string) (string, error) {
+	data, err := s.ParseToken(ctx, tokenStr)
+	if err != nil {
+		return "", ErrInvalidCredentials
+	}
+
+	user, err := s.users.FindByID(ctx, data["id"])
+	if err != nil {
+		return "", ErrInvalidCredentials
+	}
+
+	claims := jwt.MapClaims{
+		"sub":   user.ID.Hex(),
+		"role":  user.Role,
+		"email": user.Email,
+		"name":  user.FullName,
+		"exp":   time.Now().Add(24 * time.Hour).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(s.secret)
+}
+
 func (s *AuthService) GetUserByID(ctx context.Context, userID string) (*models.User, error) {
 	return s.users.FindByID(ctx, userID)
 }

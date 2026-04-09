@@ -13,6 +13,8 @@ import (
 	"github.com/Tedra-ez/AdvancedProgramming_Final/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -22,6 +24,7 @@ func main() {
 	cfg := config.Load()
 
 	server := gin.Default()
+	server.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	server.Static("/static", "static")
 	server.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"msg": "pong"})

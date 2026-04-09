@@ -1,0 +1,11 @@
+groups:
+  - name: app-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: (sum(rate(http_errors_total[5m])) / sum(rate(http_requests_total[5m]))) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for 5 minutes"
